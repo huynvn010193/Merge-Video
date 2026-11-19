@@ -1,5 +1,7 @@
 export const MAX_CLIPS = 12;
-export const MAX_BYTES = 250 * 1024 * 1024;
+export const MAX_UPLOAD_GB = 1;
+export const MAX_BYTES = MAX_UPLOAD_GB * 1024 * 1024 * 1024;
+export const MAX_UPLOAD_LABEL = `${MAX_UPLOAD_GB} GB`;
 
 export const formats = {
   landscape: { label: "Ngang", ratio: "16:9", width: 1280, height: 720 },

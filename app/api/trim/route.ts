@@ -1,7 +1,7 @@
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { MAX_BYTES } from "../../../lib/video";
+import { MAX_BYTES, MAX_UPLOAD_LABEL } from "../../../lib/video";
 import { downloadVideo, execute, fail, ffmpeg, ffprobe, inputOptions, readVideoForm, saveVideo } from "../../../lib/video-server";
 
 export const runtime = "nodejs";
@@ -22,7 +22,7 @@ export async function POST(request: Request) {
     if (files.length !== 1 || !(file instanceof File) || !file.size) {
       return fail("Hãy chọn một tệp video hợp lệ.", 400);
     }
-    if (file.size > MAX_BYTES) return fail("Video vượt quá 250 MB.", 413);
+    if (file.size > MAX_BYTES) return fail(`Video vượt quá ${MAX_UPLOAD_LABEL}.`, 413);
 
     const startValue = form.get("start");
     const endValue = form.get("end");

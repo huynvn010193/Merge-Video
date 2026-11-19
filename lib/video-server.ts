@@ -5,7 +5,7 @@ import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import type { ReadableStream as NodeReadableStream } from "node:stream/web";
 import { promisify } from "node:util";
-import { MAX_BYTES } from "./video";
+import { MAX_BYTES, MAX_UPLOAD_LABEL } from "./video";
 
 export const execute = promisify(execFile);
 export const ffmpeg = process.env.FFMPEG_PATH || "ffmpeg";
@@ -18,7 +18,7 @@ export function fail(error: string, status: number) {
 
 export async function readVideoForm(request: Request) {
   const limit = MAX_BYTES + 1024 * 1024;
-  const tooLarge = () => fail("Tổng dung lượng video vượt quá 250 MB.", 413);
+  const tooLarge = () => fail(`Tổng dung lượng video vượt quá ${MAX_UPLOAD_LABEL}.`, 413);
   if (Number(request.headers.get("content-length")) > limit) return tooLarge();
 
   const contentType = request.headers.get("content-type");

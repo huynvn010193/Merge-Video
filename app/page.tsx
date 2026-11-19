@@ -2,7 +2,7 @@
 
 import { ArrowDown, ArrowUp, ArrowRight, Check, Download, Film, LoaderCircle, Plus, Upload, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { formats, MAX_BYTES, MAX_CLIPS, VIDEO_ACCEPT, VIDEO_EXTENSION, type Format } from "../lib/video";
+import { formats, MAX_BYTES, MAX_UPLOAD_LABEL, MAX_CLIPS, VIDEO_ACCEPT, VIDEO_EXTENSION, type Format } from "../lib/video";
 
 type Clip = { id: string; file: File; url: string };
 const formatOptions = Object.keys(formats) as Format[];
@@ -52,7 +52,7 @@ export default function Home() {
     }
     if (incoming.length + clips.length > MAX_CLIPS) return setError("Chỉ có thể thêm tối đa 12 video.");
     if (total + incoming.reduce((sum, file) => sum + file.size, 0) > MAX_BYTES) {
-      return setError("Tổng dung lượng video vượt quá 250 MB.");
+      return setError(`Tổng dung lượng video vượt quá ${MAX_UPLOAD_LABEL}.`);
     }
 
     const added = incoming.map((file) => {
@@ -135,7 +135,7 @@ export default function Home() {
             <button className="secondary" type="button" disabled={busy} onClick={() => input.current?.click()}>
               <Plus size={17} /> {clips.length ? "Thêm video" : "Chọn video"}
             </button>
-            <small>MP4, MOV, WebM, MKV, AVI, M4V · Tối đa 250 MB tổng cộng</small>
+            <small>MP4, MOV, WebM, MKV, AVI, M4V · Tối đa {MAX_UPLOAD_LABEL} tổng cộng</small>
           </div>
 
           {!!clips.length && (

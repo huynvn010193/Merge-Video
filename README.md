@@ -1,6 +1,6 @@
 # Clipjoin
 
-Ứng dụng Next.js App Router và TypeScript để ghép nhiều clip hoặc cắt một đoạn video và xuất ra MP4. Menu Ghép video hỗ trợ 2–12 tệp MP4, MOV, WebM, MKV, AVI hoặc M4V với tổng dung lượng tối đa 250 MB.
+Ứng dụng Next.js App Router và TypeScript để ghép nhiều clip hoặc cắt một đoạn video và xuất ra MP4. Menu Ghép video hỗ trợ 2–12 tệp MP4, MOV, WebM, MKV, AVI hoặc M4V với tổng dung lượng tối đa 1 GB.
 
 ## Chạy trên máy
 
@@ -15,7 +15,7 @@ Mở [http://localhost:4001](http://localhost:4001), thêm video, dùng các nú
 
 Nếu FFmpeg nằm ngoài PATH, đặt `FFMPEG_PATH` và `FFPROBE_PATH` thành đường dẫn tuyệt đối tới các tệp thực thi trong `.env.local`.
 
-Trong menu **Cắt video**, chọn một tệp tối đa 250 MB, nhập mốc bắt đầu và kết thúc theo giây hoặc lấy vị trí đang phát. Bấm **Xem đoạn** để nghe và xem trước, rồi bấm **Cắt và xuất MP4**. Có thể tải tệp kết quả về và đưa vào menu **Ghép video**.
+Trong menu **Cắt video**, chọn một tệp tối đa 1 GB, nhập mốc bắt đầu và kết thúc theo giây hoặc lấy vị trí đang phát. Bấm **Xem đoạn** để nghe và xem trước, rồi bấm **Cắt và xuất MP4**. Có thể tải tệp kết quả về và đưa vào menu **Ghép video**.
 
 ## Xử lý video
 

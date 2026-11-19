@@ -2,7 +2,7 @@
 
 import { Download, LoaderCircle, Play, Scissors, Upload } from "lucide-react";
 import { useEffect, useReducer, useRef } from "react";
-import { MAX_BYTES, VIDEO_ACCEPT, VIDEO_EXTENSION } from "../../lib/video";
+import { MAX_BYTES, MAX_UPLOAD_LABEL, VIDEO_ACCEPT, VIDEO_EXTENSION } from "../../lib/video";
 
 type Source = { file: File; url: string };
 type RangePoint = "start" | "end";
@@ -97,7 +97,7 @@ export default function TrimPage() {
     if (!file.size || !VIDEO_EXTENSION.test(file.name)) {
       return dispatch({ type: "errorReported", message: "Hãy chọn tệp MP4, MOV, WebM, MKV, AVI hoặc M4V có dữ liệu." });
     }
-    if (file.size > MAX_BYTES) return dispatch({ type: "errorReported", message: "Video vượt quá 250 MB." });
+    if (file.size > MAX_BYTES) return dispatch({ type: "errorReported", message: `Video vượt quá ${MAX_UPLOAD_LABEL}.` });
 
     if (source) releaseUrl(source.url);
     releaseUrl(result);
@@ -218,7 +218,7 @@ export default function TrimPage() {
               <div className="upload-icon"><Upload size={24} /></div>
               <strong>Kéo và thả một video vào đây</strong>
               <button className="secondary" type="button" onClick={() => picker.current?.click()}>Chọn video</button>
-              <small>MP4, MOV, WebM, MKV, AVI, M4V · Tối đa 250 MB</small>
+              <small>MP4, MOV, WebM, MKV, AVI, M4V · Tối đa {MAX_UPLOAD_LABEL}</small>
             </div>
           )}
         </section>

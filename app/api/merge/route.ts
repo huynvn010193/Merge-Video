@@ -1,7 +1,7 @@
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { formats, MAX_BYTES, MAX_CLIPS, type Format } from "../../../lib/video";
+import { formats, MAX_BYTES, MAX_UPLOAD_LABEL, MAX_CLIPS, type Format } from "../../../lib/video";
 
 import { downloadVideo, execute, fail, ffmpeg, ffprobe, inputOptions, readVideoForm, saveVideo } from "../../../lib/video-server";
 
@@ -29,7 +29,7 @@ export async function POST(request: Request) {
       return fail("Hãy chọn từ 2 đến 12 video hợp lệ.", 400);
     }
     if (files.reduce((size, file) => size + file.size, 0) > MAX_BYTES) {
-      return fail("Tổng dung lượng video vượt quá 250 MB.", 413);
+      return fail(`Tổng dung lượng video vượt quá ${MAX_UPLOAD_LABEL}.`, 413);
     }
 
     const { width, height } = formats[format as Format];
