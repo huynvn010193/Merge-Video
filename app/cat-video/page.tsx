@@ -1,7 +1,8 @@
 "use client";
 
-import { Download, LoaderCircle, Play, Scissors, Upload } from "lucide-react";
+import { Link as LinkIcon, Download, LoaderCircle, Play, Scissors, Upload } from "lucide-react";
 import { useEffect, useReducer, useRef } from "react";
+import { youtubeVideoId } from "../../lib/youtube";
 import { MAX_BYTES, MAX_UPLOAD_LABEL, VIDEO_ACCEPT, VIDEO_EXTENSION } from "../../lib/video";
 
 type Source = { file: File; url: string };
@@ -16,9 +17,14 @@ type TrimState = {
   previewError: boolean;
   error: string;
   busy: boolean;
+  youtubeUrl: string;
+  importing: boolean;
 };
 
 type TrimAction =
+  | { type: "youtubeUrlChanged"; value: string }
+  | { type: "importStarted" }
+  | { type: "importFailed"; message: string }
   | { type: "sourceSelected"; source: Source }
   | { type: "metadataLoaded"; url: string; duration: number }
   | { type: "previewFailed"; url: string }
@@ -36,12 +42,20 @@ const initialState: TrimState = {
   previewError: false,
   error: "",
   busy: false,
+  youtubeUrl: "",
+  importing: false,
 };
 
 function trimReducer(state: TrimState, action: TrimAction): TrimState {
   switch (action.type) {
+    case "youtubeUrlChanged":
+      return { ...state, youtubeUrl: action.value, error: "" };
+    case "importStarted":
+      return { ...state, importing: true, error: "" };
+    case "importFailed":
+      return { ...state, importing: false, error: action.message };
     case "sourceSelected":
-      return { ...initialState, source: action.source };
+      return { ...initialState, source: action.source, youtubeUrl: state.youtubeUrl };
     case "metadataLoaded":
       if (state.source?.url !== action.url) return state;
       return {
@@ -71,7 +85,8 @@ export default function TrimPage() {
   const previewEnd = useRef<number | null>(null);
   const urls = useRef(new Set<string>());
   const [state, dispatch] = useReducer(trimReducer, initialState);
-  const { source, result, start, end, duration, previewError, error, busy } = state;
+  const { source, result, start, end, duration, previewError, error, youtubeUrl, importing } = state;
+  const busy = state.busy || importing;
   const from = Number(start);
   const to = Number(end);
   const validRange = start.trim() !== "" && end.trim() !== "" &&
@@ -99,12 +114,60 @@ export default function TrimPage() {
     }
     if (file.size > MAX_BYTES) return dispatch({ type: "errorReported", message: `Video vượt quá ${MAX_UPLOAD_LABEL}.` });
 
+    selectFile(file);
+  }
+
+  function selectFile(file: File) {
+    player.current?.pause();
     if (source) releaseUrl(source.url);
     releaseUrl(result);
     const url = URL.createObjectURL(file);
     urls.current.add(url);
     previewEnd.current = null;
     dispatch({ type: "sourceSelected", source: { file, url } });
+  }
+
+  async function importYouTube(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (busy || request.current) return;
+    if (!youtubeVideoId(youtubeUrl)) {
+      return dispatch({ type: "errorReported", message: "Hãy nhập link video YouTube hoặc Shorts hợp lệ." });
+    }
+
+    dispatch({ type: "importStarted" });
+    previewEnd.current = null;
+    player.current?.pause();
+    const controller = new AbortController();
+    request.current = controller;
+    try {
+      const response = await fetch("/api/youtube", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: youtubeUrl }),
+        signal: controller.signal,
+      });
+      if (!response.ok) {
+        const data = await response.json().catch(() => null);
+        throw new Error(data?.error ?? "Không tải được video YouTube.");
+      }
+      const blob = await response.blob();
+      if (controller.signal.aborted) return;
+      if (!blob.size || blob.size > MAX_BYTES) {
+        throw new Error(`Video tải về không hợp lệ hoặc vượt quá ${MAX_UPLOAD_LABEL}.`);
+      }
+      const title = decodeURIComponent(response.headers.get("X-Video-Title") || "YouTube");
+      const filename = title.replace(/[\/:*?"<>|\x00-\x1f]/g, "_").slice(0, 180) || "YouTube";
+      selectFile(new File([blob], `${filename}.mp4`, { type: "video/mp4" }));
+    } catch (cause) {
+      if (!controller.signal.aborted) {
+        dispatch({
+          type: "importFailed",
+          message: cause instanceof Error ? cause.message : "Không tải được video YouTube.",
+        });
+      }
+    } finally {
+      request.current = null;
+    }
   }
 
   function updateRange(point: RangePoint, value: string) {
@@ -176,7 +239,20 @@ export default function TrimPage() {
             </div>
             {source && <button className="secondary" type="button" disabled={busy} onClick={() => picker.current?.click()}>Đổi video</button>}
           </div>
-          <input ref={picker} type="file" accept={VIDEO_ACCEPT} hidden onChange={(event) => {
+          <form className="youtube-import" onSubmit={importYouTube}>
+            <label htmlFor="youtube-url">Link YouTube</label>
+            <div className="youtube-input-row">
+              <input id="youtube-url" type="url" inputMode="url" placeholder="https://www.youtube.com/watch?v=…"
+                value={youtubeUrl} disabled={busy} maxLength={2048}
+                onChange={(event) => dispatch({ type: "youtubeUrlChanged", value: event.target.value })} />
+              <button className="secondary" type="submit" disabled={busy || !youtubeUrl.trim()}>
+                {importing ? <LoaderCircle className="spinner" size={16} /> : <LinkIcon size={16} />}
+                {importing ? "Đang tải…" : "Lấy video"}
+              </button>
+            </div>
+            <small>Tải video tối đa 1080p, dung lượng tối đa {MAX_UPLOAD_LABEL}, rồi chọn đoạn cần cắt.</small>
+          </form>
+          <input ref={picker} type="file" accept={VIDEO_ACCEPT} disabled={busy} hidden onChange={(event) => {
             chooseFile(event.currentTarget.files?.[0]);
             event.currentTarget.value = "";
           }} />
@@ -217,7 +293,7 @@ export default function TrimPage() {
             }}>
               <div className="upload-icon"><Upload size={24} /></div>
               <strong>Kéo và thả một video vào đây</strong>
-              <button className="secondary" type="button" onClick={() => picker.current?.click()}>Chọn video</button>
+              <button className="secondary" type="button" disabled={busy} onClick={() => picker.current?.click()}>Chọn video</button>
               <small>MP4, MOV, WebM, MKV, AVI, M4V · Tối đa {MAX_UPLOAD_LABEL}</small>
             </div>
           )}
@@ -258,11 +334,11 @@ export default function TrimPage() {
                 <Play size={16} /> Xem đoạn
               </button>
               <button className="primary" type="button" disabled={busy || !source || !validRange} onClick={trim}>
-                {busy ? <><LoaderCircle className="spinner" size={18} /> Đang cắt…</> : <><Scissors size={18} /> Cắt và xuất MP4</>}
+                {state.busy ? <><LoaderCircle className="spinner" size={18} /> Đang cắt…</> : <><Scissors size={18} /> Cắt và xuất MP4</>}
               </button>
             </div>
           )}
-          <div className="status" role="status">{result ? "Video đã sẵn sàng để tải." : busy ? "Đang xử lý video trên máy chủ." : ""}</div>
+          <div className="status" role="status">{importing ? "Đang tải video từ YouTube, vui lòng giữ trang mở." : result ? "Video đã sẵn sàng để tải." : busy ? "Đang xử lý video trên máy chủ." : ""}</div>
         </section>
       </div>
     </main>
